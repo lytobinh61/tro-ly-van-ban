@@ -71,7 +71,7 @@ async function handleChoice(id) {
 
 // --- PHÂN TÍCH VĂN BẢN ---
 async function analyzeLawDoc(id) {
-  output.innerHTML = `<p>⏳ Đang phân tích văn bản...</p>`;
+  output.innerHTML = `<p>⏳ Đang tra cứu văn bản <b>${id}</b>...</p>`;
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",
@@ -79,22 +79,33 @@ async function analyzeLawDoc(id) {
       body: JSON.stringify({ code: id })
     });
     const data = await res.json();
+
+    if (data.error) {
+      output.innerHTML = `<p style="color:red">❌ ${data.error}</p>
+        <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>`;
+      return;
+    }
+
     output.innerHTML = `
       <div class="card shadow-sm p-3">
-        <h5>🔍 Phân tích văn bản ${data.code}</h5>
+        <h5>📘 ${data.title}</h5>
         <ul>
-          <li><b>Nội dung chính:</b> ${data.summary}</li>
-          <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
-          <li><b>Hiệu lực:</b> ${data.effect}</li>
-          <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
+          <li><b>Số hiệu:</b> ${data.code}</li>
+          <li><b>Loại văn bản:</b> ${data.type}</li>
+          <li><b>Cơ quan ban hành:</b> ${data.agency}</li>
+          <li><b>Ngày ban hành:</b> ${data.signDate}</li>
+          <li><b>Ngày có hiệu lực:</b> ${data.effectiveDate}</li>
+          <li><b>Tình trạng hiệu lực:</b> ${data.status}</li>
         </ul>
+        <p>🔗 <a href="${data.link}" target="_blank">Xem toàn văn tại VBPL.vn</a></p>
         <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu lựa chọn</button>
       </div>
     `;
   } catch (e) {
-    output.innerHTML = `<p style="color:red">❌ Lỗi: ${e.message}</p>`;
+    output.innerHTML = `<p style="color:red">❌ Lỗi xử lý: ${e.message}</p>`;
   }
 }
+
 
 // --- CÁC HÀM GIẢ LẬP CHO 3,4 ---
 function showComparison(a, b) {
@@ -157,4 +168,5 @@ function resetMain() {
   output.classList.add("d-none");
   menuMain.classList.remove("d-none");
 }
+
 
