@@ -1,31 +1,26 @@
+// --- BẮT SỰ KIỆN NÚT MENU CHÍNH ---
 const btnInfo = document.getElementById("btnInfo");
 const btnTopic = document.getElementById("btnTopic");
-const output = document.getElementById("output");
 const menuMain = document.getElementById("menuMain");
+const output = document.getElementById("output");
 
-function showOutput(html) {
-  output.innerHTML = html;
-  output.classList.remove("d-none");
-  menuMain.classList.add("d-none");
-}
-
-function resetMain() {
-  output.classList.add("d-none");
-  menuMain.classList.remove("d-none");
-}
-
-// ====================== MAIN FLOW ======================
-
-// Khi bấm “Tìm hiểu văn bản”
+// 🔹 Nút “Tìm hiểu văn bản”
 btnInfo.onclick = () => {
   const id = prompt("Nhập số hiệu văn bản (VD: 15/2023/NĐ-CP):");
   if (!id) return;
   showMenu(id);
 };
 
-// Hiển thị menu lựa chọn
+// 🔹 Nút “Tìm kiếm theo chủ đề”
+btnTopic.onclick = () => {
+  const topic = prompt("Nhập chủ đề cần tìm (VD: an toàn lao động):");
+  if (!topic) return;
+  showTopic(topic);
+};
+
+// --- HÀM PHÂN TÍCH VĂN BẢN ---
 async function showMenu(id) {
-  const output = document.getElementById("output");
+  menuMain.classList.add("d-none");
   output.classList.remove("d-none");
   output.innerHTML = `<p>⏳ Đang phân tích văn bản...</p>`;
 
@@ -37,133 +32,43 @@ async function showMenu(id) {
     });
 
     if (!res.ok) throw new Error(`API lỗi: ${res.status}`);
+
     const data = await res.json();
 
     output.innerHTML = `
-      <h5>🔍 Phân tích văn bản ${data.code}</h5>
-      <ul>
-        <li><b>Nội dung chính:</b> ${data.summary}</li>
-        <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
-        <li><b>Hiệu lực:</b> ${data.effect}</li>
-        <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
-      </ul>
-      <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại menu</button>
+      <div class="card shadow-sm p-3">
+        <h5>🔍 Phân tích văn bản ${data.code}</h5>
+        <ul>
+          <li><b>Nội dung chính:</b> ${data.summary}</li>
+          <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
+          <li><b>Hiệu lực:</b> ${data.effect}</li>
+          <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
+        </ul>
+        <button class="btn btn-secondary mt-3" onclick="resetMain()">↩ Quay lại menu</button>
+      </div>
     `;
   } catch (err) {
-    output.innerHTML = `<p style="color:red">❌ Lỗi: ${err.message}</p>`;
+    output.innerHTML = `<p style="color:red">❌ Lỗi: ${err.message}</p>
+    <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại menu</button>`;
   }
 }
 
-// ====================== GỌI GPT API ======================
-// Gửi yêu cầu đến API analyze
-async function analyzeDocument(code) {
-  const outputDiv = document.getElementById("output");
-  outputDiv.innerHTML = "<p>⏳ Đang phân tích văn bản...</p>";
-
-  try {
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: code }), // <-- rất quan trọng
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Lỗi API (${res.status}): ${errText}`);
-    }
-
-    const data = await res.json(); // <-- chờ dữ liệu trả về
-
-    outputDiv.innerHTML = `
-      <h5>🔍 Phân tích văn bản ${data.code}</h5>
-      <ul>
-        <li><b>Nội dung chính:</b> ${data.summary}</li>
-        <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
-        <li><b>Hiệu lực:</b> ${data.effect}</li>
-        <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
-      </ul>
-      <button class="btn btn-secondary" onclick="resetMain()">↩ Quay lại menu</button>
-    `;
-  } catch (err) {
-    outputDiv.innerHTML = `<p style="color:red">❌ Lỗi: ${err.message}</p>`;
-  }
+// --- HÀM TÌM KIẾM THEO CHỦ ĐỀ ---
+function showTopic(topic) {
+  menuMain.classList.add("d-none");
+  output.classList.remove("d-none");
+  output.innerHTML = `
+    <h5>📚 Kết quả tìm kiếm cho chủ đề "${topic}"</h5>
+    <p>Văn bản mới nhất: <b>15/2023/NĐ-CP</b><br>
+    Ban hành ngày 15/8/2023<br>
+    Cơ quan ban hành: <b>Chính phủ</b></p>
+    <button class="btn btn-primary" onclick="showMenu('15/2023/NĐ-CP')">Phân tích văn bản này</button>
+    <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại menu</button>
+  `;
 }
 
-
-// ====================== XỬ LÝ LỰA CHỌN ======================
-async function handleChoice(id) {
-  const val = document.getElementById("choiceInput").value.trim();
-
-  switch (val) {
-    case "1": {
-      showOutput("<p>⏳ Đang phân tích văn bản...</p>");
-      const data = await callGPT("Phân tích văn bản", id);
-      showOutput(`
-        <h5>🔍 Phân tích văn bản ${id}</h5>
-        <div>${data.reply}</div>
-        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `);
-      break;
-    }
-    case "2": {
-      const second = prompt("Nhập số hiệu văn bản thứ hai để so sánh:");
-      if (!second) return showMenu(id);
-      showOutput("<p>⏳ Đang so sánh văn bản...</p>");
-      const data = await callGPT("So sánh văn bản", `${id} và ${second}`);
-      showOutput(`
-        <h5>📘 So sánh ${id} và ${second}</h5>
-        <div>${data.reply}</div>
-        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `);
-      break;
-    }
-    case "3": {
-      showOutput("<p>⏳ Đang tóm tắt điểm mới...</p>");
-      const data = await callGPT("Tóm tắt điểm mới", id);
-      showOutput(`
-        <h5>📝 Tóm tắt điểm mới của ${id}</h5>
-        <div>${data.reply}</div>
-        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `);
-      break;
-    }
-    case "4": {
-      const term = prompt("Nhập điều khoản hoặc thuật ngữ cần giải thích:");
-      if (!term) return showMenu(id);
-      showOutput("<p>⏳ Đang giải thích điều khoản...</p>");
-      const data = await callGPT("Giải thích điều khoản", `${term} trong ${id}`);
-      showOutput(`
-        <h5>📖 Giải thích điều khoản trong ${id}</h5>
-        <div>${data.reply}</div>
-        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `);
-      break;
-    }
-    case "0":
-      resetMain();
-      break;
-    default:
-      alert("Lựa chọn không hợp lệ! Nhập 0–4");
-  }
+// --- HÀM QUAY LẠI MENU CHÍNH ---
+function resetMain() {
+  output.classList.add("d-none");
+  menuMain.classList.remove("d-none");
 }
-
-// ====================== TÌM KIẾM THEO CHỦ ĐỀ ======================
-btnTopic.onclick = async () => {
-  const topic = prompt("Nhập chủ đề cần tìm (VD: an toàn lao động):");
-  if (!topic) return;
-  showOutput("<p>⏳ Đang tìm kiếm văn bản mới nhất...</p>");
-  const data = await callGPT("Tìm kiếm theo chủ đề", topic);
-  showOutput(`
-    <h5>📘 Kết quả tìm kiếm cho chủ đề “${topic}”</h5>
-    <div>${data.reply}</div>
-    <button class="btn btn-primary mt-2" onclick="showMenu('${topic}')">Tiếp tục với văn bản này</button>
-    <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại</button>
-  `);
-};
-
-window.handleChoice = handleChoice;
-window.showMenu = showMenu;
-window.resetMain = resetMain;
-
-
-
