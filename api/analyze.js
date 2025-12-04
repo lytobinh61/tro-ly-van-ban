@@ -1,18 +1,28 @@
-// /api/analyze.js
-export default async function handler(req, res) {
+// ✅ /api/analyze.js — version chạy chắc chắn trên Vercel
+export const config = {
+  runtime: "edge",
+};
+
+export default async function handler(req) {
   if (req.method !== "POST") {
-    // Chỉ chấp nhận POST
-    return res.status(405).json({ error: "Method not allowed" });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
-    const { code } = req.body || {};
+    const body = await req.json();
+    const { code } = body || {};
 
     if (!code) {
-      return res.status(400).json({ error: "Thiếu số hiệu văn bản" });
+      return new Response(JSON.stringify({ error: "Thiếu số hiệu văn bản" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // ⚙️ Dữ liệu giả lập cho bản demo
+    // ⚙️ Dữ liệu mẫu giả lập
     const data = {
       code,
       summary: "Nghị định này quy định chi tiết về quản lý, kiểm tra và xử lý vi phạm hành chính trong lĩnh vực tương ứng.",
@@ -21,8 +31,14 @@ export default async function handler(req, res) {
       basis: "Căn cứ Luật Tổ chức Chính phủ và các văn bản pháp luật liên quan.",
     };
 
-    return res.status(200).json(data);
-  } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
