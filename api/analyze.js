@@ -5,9 +5,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { code } = req.body || {};
-    if (!code) {
-      return res.status(400).json({ error: "Thiếu số hiệu văn bản" });
+    let { code } = req.body || {};
+    if (!code) return res.status(400).json({ error: "Thiếu số hiệu văn bản" });
+
+// Chuẩn hoá: bỏ dấu tiếng Việt và ký tự đặc biệt
+  code = code
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[Đđ]/g, "D")
+  .replace(/\s+/g, "")
+  .replace(/[^0-9A-Za-z\/\-]/g, "");
+
     }
 
     // Gọi API tìm kiếm VBPL (CSDL Quốc gia)
@@ -47,3 +55,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
