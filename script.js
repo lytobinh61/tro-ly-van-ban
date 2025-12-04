@@ -49,27 +49,31 @@ async function analyzeDocument(code) {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code: code }), // <-- rất quan trọng
     });
 
-    if (!res.ok) throw new Error(`Lỗi: ${res.status}`);
-    const data = await res.json();
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Lỗi API (${res.status}): ${errText}`);
+    }
 
-    // ✅ Hiển thị kết quả trả về từ API
+    const data = await res.json(); // <-- chờ dữ liệu trả về
+
     outputDiv.innerHTML = `
-      <h5>🔍 Phân tích văn bản ${data.code || code}</h5>
+      <h5>🔍 Phân tích văn bản ${data.code}</h5>
       <ul>
-        <li><b>Nội dung chính:</b> ${data.summary || "(chưa có dữ liệu)"}</li>
-        <li><b>Phạm vi áp dụng:</b> ${data.scope || "(chưa có dữ liệu)"}</li>
-        <li><b>Hiệu lực:</b> ${data.effect || "(chưa có dữ liệu)"}</li>
-        <li><b>Căn cứ pháp lý:</b> ${data.basis || "(chưa có dữ liệu)"}</li>
+        <li><b>Nội dung chính:</b> ${data.summary}</li>
+        <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
+        <li><b>Hiệu lực:</b> ${data.effect}</li>
+        <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
       </ul>
       <button class="btn btn-secondary" onclick="resetMain()">↩ Quay lại menu</button>
     `;
   } catch (err) {
-    outputDiv.innerHTML = `<p style="color:red">❌ Lỗi khi phân tích: ${err.message}</p>`;
+    outputDiv.innerHTML = `<p style="color:red">❌ Lỗi: ${err.message}</p>`;
   }
 }
+
 
 // ====================== XỬ LÝ LỰA CHỌN ======================
 async function handleChoice(id) {
@@ -145,4 +149,5 @@ btnTopic.onclick = async () => {
 window.handleChoice = handleChoice;
 window.showMenu = showMenu;
 window.resetMain = resetMain;
+
 
