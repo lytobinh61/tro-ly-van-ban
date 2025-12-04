@@ -1,122 +1,73 @@
-const btnInfo = document.getElementById("btnInfo");
-const btnTopic = document.getElementById("btnTopic");
+// ============================
+// TRỢ LÝ PHÂN TÍCH VĂN BẢN PHÁP LUẬT
+// Bản hoàn chỉnh - 2025
+// ============================
+
+const btnInfo = document.getElementById("btn-info");
+const menuMain = document.getElementById("menu-main");
 const output = document.getElementById("output");
-const menuMain = document.getElementById("menuMain");
 
-// 🟦 Bấm “Tìm hiểu văn bản”
-btnInfo.onclick = () => {
-  const id = prompt(
-    "Nhập số hiệu văn bản (không dấu, đúng định dạng VBPL)\n\nVí dụ:\n- 15/2023/ND-CP (Nghị định)\n- 12/2022/TT-BTC (Thông tư)\n- 23/2021/QD-TTG (Quyết định)\n\nNhập tại đây:"
+// Quay lại menu chính
+function resetMain() {
+  output.classList.add("d-none");
+  menuMain.classList.remove("d-none");
+  output.innerHTML = "";
+}
+
+// Xử lý khi người dùng chọn “Phân tích văn bản”
+btnInfo.onclick = async () => {
+  const code = prompt(
+    "📘 Nhập số hiệu văn bản pháp luật (ví dụ: 15/2023/NĐ-CP, 12/2022/TT-BTC, 23/2021/QĐ-TTg):"
   );
-  if (!id) return;
-  showMenu(id);
-};
+  if (!code) return;
 
-// 🟩 Hiển thị menu lựa chọn
-function showMenu(id) {
   menuMain.classList.add("d-none");
   output.classList.remove("d-none");
-  output.innerHTML = `
-    <div class="card shadow-sm p-3">
-      <h5>📄 Văn bản: <b>${id}</b></h5>
-      <p>Chọn thao tác:</p>
-      <ol>
-        <li>Phân tích văn bản</li>
-        <li>So sánh văn bản với văn bản khác</li>
-        <li>Tóm tắt điểm mới</li>
-        <li>Giải thích điều khoản</li>
-        <li>0. Chuyển sang lựa chọn khác</li>
-      </ol>
-      <input id="choiceInput" class="form-control mb-2" placeholder="Nhập số lựa chọn (VD: 1)" />
-      <button class="btn btn-primary" onclick="handleChoice('${id}')">Thực hiện</button>
-      <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại menu chính</button>
-    </div>
-  `;
-}
-
-// 🧠 Xử lý lựa chọn người dùng
-function handleChoice(id) {
-  const choice = document.getElementById("choiceInput").value.trim();
-  if (!choice) return alert("Vui lòng nhập số lựa chọn!");
-
-  switch (choice) {
-    case "1":
-      analyzeLawDoc(id);
-      break;
-    case "0":
-      resetMain();
-      break;
-    default:
-      output.innerHTML = `
-        <div class="alert alert-info">
-          🧩 Chức năng này đang được phát triển...
-        </div>
-        <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `;
-  }
-}
-
-// ⚙️ Gửi yêu cầu tới API /api/analyze
-async function analyzeLawDoc(id) {
-  output.innerHTML = `<p>⏳ Đang tra cứu văn bản <b>${id}</b>...</p>`;
+  output.innerHTML = `<div class="alert alert-info">⏳ Đang phân tích văn bản <b>${code}</b>...</div>`;
 
   try {
     const res = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: id }),
+      body: JSON.stringify({ code }),
     });
+
     const data = await res.json();
 
-    // ❌ Nếu có lỗi
-    if (data.error) {
+    // Nếu API trả lỗi
+    if (!res.ok) {
       output.innerHTML = `
         <div class="alert alert-warning">
-          ⚠️ ${data.error}<br><br>
-          Hãy đảm bảo bạn nhập đúng định dạng (không dấu).<br><br>
-          Ví dụ hợp lệ:<br>
-          • 15/2023/ND-CP (Nghị định)<br>
-          • 12/2022/TT-BTC (Thông tư)<br>
-          • 23/2021/QD-TTG (Quyết định)
+          ⚠️ ${data.error || "Không tìm thấy dữ liệu cho văn bản này."}
         </div>
-        <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+        <button class="btn btn-secondary mt-3" onclick="resetMain()">↩️ Quay lại menu</button>
       `;
       return;
     }
 
-    // ✅ Hiển thị kết quả thật từ API
+    // Hiển thị kết quả
     output.innerHTML = `
-      <div class="card shadow-sm p-3">
-        <h5>📘 ${data.title}</h5>
-        <ul>
-          <li><b>Số hiệu:</b> ${data.code}</li>
-          <li><b>Loại văn bản:</b> ${data.type || "Không rõ"}</li>
-          <li><b>Cơ quan ban hành:</b> ${data.agency || "Không rõ"}</li>
-          <li><b>Ngày ban hành:</b> ${data.signDate || "Không rõ"}</li>
-          <li><b>Ngày có hiệu lực:</b> ${data.effectiveDate || "Không rõ"}</li>
-          <li><b>Tình trạng hiệu lực:</b> ${data.status || "Không rõ"}</li>
+      <div class="card p-3 shadow-sm">
+        <h4 class="mb-3">📘 ${data.title || "Không rõ tiêu đề"}</h4>
+        <ul style="list-style-type:none; padding-left:0;">
+          <li><b>• Số hiệu:</b> ${data.code}</li>
+          <li><b>• Loại văn bản:</b> ${data.type}</li>
+          <li><b>• Cơ quan ban hành:</b> ${data.agency}</li>
+          <li><b>• Ngày ban hành:</b> ${data.issued}</li>
+          <li><b>• Ngày có hiệu lực:</b> ${data.effect}</li>
+          <li><b>• Tình trạng hiệu lực:</b> ${data.status}</li>
         </ul>
-        <p>🔗 <a href="${data.link}" target="_blank">Xem toàn văn tại VBPL.vn</a></p>
-        <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu lựa chọn</button>
+        <hr>
+        <p><a href="${data.link}" target="_blank" class="text-decoration-none">🔗 Xem toàn văn tại ${data.source}</a></p>
+        <button class="btn btn-secondary mt-3" onclick="resetMain()">↩️ Quay lại menu</button>
       </div>
     `;
-  } catch (e) {
+  } catch (err) {
     output.innerHTML = `
       <div class="alert alert-danger">
-        ❌ Lỗi xử lý: ${e.message}
+        ❌ Lỗi khi kết nối đến máy chủ:<br><b>${err.message}</b>
       </div>
-      <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+      <button class="btn btn-secondary mt-3" onclick="resetMain()">↩️ Quay lại menu</button>
     `;
   }
-}
-
-// 🔄 Quay lại màn hình chính
-function resetMain() {
-  output.classList.add("d-none");
-  menuMain.classList.remove("d-none");
-}
-
-// 🌐 Cho phép gọi từ HTML
-window.handleChoice = handleChoice;
-window.resetMain = resetMain;
-window.showMenu = showMenu;
+};
