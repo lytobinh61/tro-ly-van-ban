@@ -24,19 +24,34 @@ btnInfo.onclick = () => {
 };
 
 // Hiển thị menu lựa chọn
-function showMenu(id) {
-  showOutput(`
-    <h5>Chọn hành động cho văn bản <b>${id}</b>:</h5>
-    <ul>
-      <li>1. Phân tích văn bản</li>
-      <li>2. So sánh văn bản với văn bản khác</li>
-      <li>3. Tóm tắt điểm mới</li>
-      <li>4. Giải thích điều khoản</li>
-      <li>0. Chuyển sang lựa chọn khác</li>
-    </ul>
-    <input id="choiceInput" type="text" class="form-control" placeholder="Nhập số lựa chọn..." />
-    <button class="btn btn-primary mt-2" onclick="handleChoice('${id}')">Thực hiện</button>
-  `);
+async function showMenu(id) {
+  const output = document.getElementById("output");
+  output.classList.remove("d-none");
+  output.innerHTML = `<p>⏳ Đang phân tích văn bản...</p>`;
+
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: id })
+    });
+
+    if (!res.ok) throw new Error(`API lỗi: ${res.status}`);
+    const data = await res.json();
+
+    output.innerHTML = `
+      <h5>🔍 Phân tích văn bản ${data.code}</h5>
+      <ul>
+        <li><b>Nội dung chính:</b> ${data.summary}</li>
+        <li><b>Phạm vi áp dụng:</b> ${data.scope}</li>
+        <li><b>Hiệu lực:</b> ${data.effect}</li>
+        <li><b>Căn cứ pháp lý:</b> ${data.basis}</li>
+      </ul>
+      <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại menu</button>
+    `;
+  } catch (err) {
+    output.innerHTML = `<p style="color:red">❌ Lỗi: ${err.message}</p>`;
+  }
 }
 
 // ====================== GỌI GPT API ======================
@@ -149,5 +164,6 @@ btnTopic.onclick = async () => {
 window.handleChoice = handleChoice;
 window.showMenu = showMenu;
 window.resetMain = resetMain;
+
 
 
