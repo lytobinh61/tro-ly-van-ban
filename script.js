@@ -40,13 +40,35 @@ function showMenu(id) {
 }
 
 // ====================== GỌI GPT API ======================
-async function callGPT(mode, input) {
-  const res = await fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode, input }),
-  });
-  return await res.json();
+// Gửi yêu cầu đến API analyze
+async function analyzeDocument(code) {
+  const outputDiv = document.getElementById("output");
+  outputDiv.innerHTML = "<p>⏳ Đang phân tích văn bản...</p>";
+
+  try {
+    const res = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+
+    if (!res.ok) throw new Error(`Lỗi: ${res.status}`);
+    const data = await res.json();
+
+    // ✅ Hiển thị kết quả trả về từ API
+    outputDiv.innerHTML = `
+      <h5>🔍 Phân tích văn bản ${data.code || code}</h5>
+      <ul>
+        <li><b>Nội dung chính:</b> ${data.summary || "(chưa có dữ liệu)"}</li>
+        <li><b>Phạm vi áp dụng:</b> ${data.scope || "(chưa có dữ liệu)"}</li>
+        <li><b>Hiệu lực:</b> ${data.effect || "(chưa có dữ liệu)"}</li>
+        <li><b>Căn cứ pháp lý:</b> ${data.basis || "(chưa có dữ liệu)"}</li>
+      </ul>
+      <button class="btn btn-secondary" onclick="resetMain()">↩ Quay lại menu</button>
+    `;
+  } catch (err) {
+    outputDiv.innerHTML = `<p style="color:red">❌ Lỗi khi phân tích: ${err.message}</p>`;
+  }
 }
 
 // ====================== XỬ LÝ LỰA CHỌN ======================
@@ -123,3 +145,4 @@ btnTopic.onclick = async () => {
 window.handleChoice = handleChoice;
 window.showMenu = showMenu;
 window.resetMain = resetMain;
+
