@@ -1,39 +1,28 @@
+// /api/analyze.js
 export default async function handler(req, res) {
   if (req.method !== "POST") {
+    // Chỉ chấp nhận POST
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { mode, input } = await req.json();
+    const { code } = req.body || {};
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Bạn là Trợ lý phân tích văn bản pháp luật, chuyên hỗ trợ đọc, phân tích, tóm tắt, giải thích, và so sánh các nghị định, thông tư. Luôn trả lời tiếng Việt, súc tích, thân thiện.",
-          },
-          {
-            role: "user",
-            content: `${mode}: ${input}`,
-          },
-        ],
-      }),
-    });
+    if (!code) {
+      return res.status(400).json({ error: "Thiếu số hiệu văn bản" });
+    }
 
-    const data = await response.json();
-    res.status(200).json({
-      reply: data.choices?.[0]?.message?.content || "Không có phản hồi.",
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    // ⚙️ Dữ liệu giả lập cho bản demo
+    const data = {
+      code,
+      summary: "Nghị định này quy định chi tiết về quản lý, kiểm tra và xử lý vi phạm hành chính trong lĩnh vực tương ứng.",
+      scope: "Áp dụng cho các cơ quan, tổ chức và cá nhân có liên quan trong phạm vi toàn quốc.",
+      effect: "Có hiệu lực từ ngày 01/01/2024.",
+      basis: "Căn cứ Luật Tổ chức Chính phủ và các văn bản pháp luật liên quan.",
+    };
+
+    return res.status(200).json(data);
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
 }
