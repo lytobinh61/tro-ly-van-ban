@@ -1,12 +1,13 @@
-const output = document.getElementById("output");
 const btnInfo = document.getElementById("btnInfo");
 const btnTopic = document.getElementById("btnTopic");
+const output = document.getElementById("output");
+const menuMain = document.getElementById("menuMain");
 
 function showOutput(html) {
   output.innerHTML = html;
   output.classList.remove("d-none");
+  menuMain.classList.add("d-none");
 }
-
 function showMenu(docNumber) {
   showOutput(`
     <h5>Văn bản: <span class="text-primary">${docNumber}</span></h5>
@@ -80,23 +81,70 @@ function handleChoice(docNumber) {
 
 function resetMain() {
   output.classList.add("d-none");
-  output.innerHTML = "";
+  menuMain.classList.remove("d-none");
+}
+// Khi bấm “Tìm hiểu văn bản”
+btnInfo.onclick = () => {
+  const id = prompt("Nhập số hiệu văn bản (VD: 15/2023/NĐ-CP):");
+  if (!id) return;
+  showMenu(id);
+};
+
+// Hiển thị menu lựa chọn
+function showMenu(id) {
+  showOutput(`
+    <h5>Chọn hành động cho văn bản <b>${id}</b>:</h5>
+    <ul>
+      <li>1. Phân tích văn bản</li>
+      <li>2. So sánh văn bản với văn bản khác</li>
+      <li>3. Tóm tắt điểm mới</li>
+      <li>4. Giải thích điều khoản</li>
+      <li>0. Chuyển sang lựa chọn khác</li>
+    </ul>
+    <input id="choiceInput" type="text" class="form-control" placeholder="Nhập số lựa chọn..." />
+    <button class="btn btn-primary mt-2" onclick="handleChoice('${id}')">Thực hiện</button>
+  `);
 }
 
-btnInfo.onclick = () => {
-  const doc = prompt("Nhập số hiệu văn bản (VD: 15/2023/NĐ-CP):");
-  if (doc) showMenu(doc);
-};
+// Xử lý lựa chọn
+function handleChoice(id) {
+  const val = document.getElementById("choiceInput").value.trim();
+  switch (val) {
+    case "1":
+      showOutput(`
+        <h5>🔍 Phân tích văn bản ${id}</h5>
+        <ul>
+          <li><b>Nội dung chính:</b> (ví dụ – đây là phần phân tích tự động sau này)</li>
+          <li><b>Phạm vi áp dụng:</b> ...</li>
+          <li><b>Hiệu lực:</b> ...</li>
+          <li><b>Căn cứ pháp lý:</b> ...</li>
+        </ul>
+        <button class="btn btn-secondary" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+      `);
+      break;
+    case "0":
+      resetMain();
+      break;
+    default:
+      alert("Lựa chọn không hợp lệ. Hãy nhập 0–4!");
+  }
+}
 
+// Khi bấm “Tìm kiếm theo chủ đề”
 btnTopic.onclick = () => {
-  const topic = prompt("Nhập chủ đề cần tìm (VD: an toàn lao động):");
+  const topic = prompt("Nhập chủ đề (VD: an toàn lao động):");
   if (!topic) return;
-  showOutput(`<h5>🔎 Kết quả tìm kiếm cho chủ đề "${topic}"</h5>
-    <p><b>Văn bản mới nhất:</b> (ví dụ) 15/2023/NĐ-CP – Ban hành ngày 15/8/2023</p>
+  showOutput(`
+    <h5>📘 Kết quả tìm kiếm cho chủ đề “${topic}”</h5>
+    <p><b>Văn bản mới nhất:</b> (VD) 15/2023/NĐ-CP – Ban hành ngày 15/8/2023</p>
     <p><b>Cơ quan ban hành:</b> Chính phủ</p>
     <button class="btn btn-primary" onclick="showMenu('15/2023/NĐ-CP')">Tiếp tục với văn bản này</button>
-    <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại</button>`);
+    <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại</button>
+  `);
 };
-window.handleChoice = handleChoice;
 
+// Cho phép gọi từ HTML
+window.handleChoice = handleChoice;
+window.showMenu = showMenu;
+window.resetMain = resetMain;
 
