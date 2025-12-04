@@ -97,3 +97,6 @@ btnTopic.onclick = () => {
     <button class="btn btn-primary" onclick="showMenu('15/2023/NĐ-CP')">Tiếp tục với văn bản này</button>
     <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại</button>`);
 };
+window.handleChoice = handleChoice;
+
+
