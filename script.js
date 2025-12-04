@@ -8,81 +8,14 @@ function showOutput(html) {
   output.classList.remove("d-none");
   menuMain.classList.add("d-none");
 }
-function showMenu(docNumber) {
-  showOutput(`
-    <h5>Văn bản: <span class="text-primary">${docNumber}</span></h5>
-    <p>Chọn thao tác:</p>
-    <ol>
-      <li>Phân tích văn bản</li>
-      <li>So sánh văn bản với văn bản khác</li>
-      <li>Tóm tắt điểm mới</li>
-      <li>Giải thích điều khoản</li>
-      <li value="0">Chuyển sang lựa chọn khác</li>
-    </ol>
-    <input id="choice" class="form-control mb-2" placeholder="Nhập số lựa chọn (0–4)">
-    <button class="btn btn-primary" onclick="handleChoice('${docNumber}')">Thực hiện</button>
-  `);
-}
-
-function handleChoice(docNumber) {
-  const choice = document.getElementById("choice").value.trim();
-  if (choice === "0") return resetMain();
-
-  switch (choice) {
-    case "1":
-      showOutput(`<h5>🔍 Phân tích văn bản ${docNumber}</h5>
-        <ul>
-          <li><b>Nội dung chính:</b> (ví dụ – đây là phần phân tích tự động sau này)</li>
-          <li><b>Phạm vi áp dụng:</b> ...</li>
-          <li><b>Hiệu lực:</b> ...</li>
-          <li><b>Căn cứ pháp lý:</b> ...</li>
-        </ul>
-        <button class="btn btn-secondary" onclick="showMenu('${docNumber}')">↩ Quay lại menu</button>`);
-      break;
-
-    case "2":
-      const doc2 = prompt("Nhập số hiệu văn bản thứ hai để so sánh:");
-      if (!doc2) return alert("Chưa nhập văn bản thứ hai.");
-      showOutput(`<h5>⚖️ So sánh ${docNumber} và ${doc2}</h5>
-        <ul>
-          <li><b>Phạm vi áp dụng:</b> ...</li>
-          <li><b>Hiệu lực:</b> ...</li>
-          <li><b>Nghĩa vụ:</b> ...</li>
-          <li><b>Chế tài:</b> ...</li>
-          <li><b>Điểm mới:</b> ...</li>
-        </ul>
-        <button class="btn btn-secondary" onclick="showMenu('${docNumber}')">↩ Quay lại menu</button>`);
-      break;
-
-    case "3":
-      showOutput(`<h5>📝 Tóm tắt điểm mới của ${docNumber}</h5>
-        <ul>
-          <li>Điểm mới 1...</li>
-          <li>Điểm mới 2...</li>
-          <li>Điểm mới 3...</li>
-          <li>Điểm mới 4...</li>
-        </ul>
-        <p><b>TL;DR:</b> Các thay đổi chính tập trung vào ...</p>
-        <button class="btn btn-secondary" onclick="showMenu('${docNumber}')">↩ Quay lại menu</button>`);
-      break;
-
-    case "4":
-      const clause = prompt("Nhập điều khoản hoặc thuật ngữ cần giải thích:");
-      if (!clause) return alert("Bạn chưa nhập điều khoản hoặc thuật ngữ.");
-      showOutput(`<h5>📘 Giải thích: ${clause}</h5>
-        <p><b>Giải thích:</b> Đây là phần mô tả dễ hiểu, có ví dụ minh họa sau này.</p>
-        <button class="btn btn-secondary" onclick="showMenu('${docNumber}')">↩ Quay lại menu</button>`);
-      break;
-
-    default:
-      alert("Vui lòng nhập số từ 0–4");
-  }
-}
 
 function resetMain() {
   output.classList.add("d-none");
   menuMain.classList.remove("d-none");
 }
+
+// ====================== MAIN FLOW ======================
+
 // Khi bấm “Tìm hiểu văn bản”
 btnInfo.onclick = () => {
   const id = prompt("Nhập số hiệu văn bản (VD: 15/2023/NĐ-CP):");
@@ -106,45 +39,87 @@ function showMenu(id) {
   `);
 }
 
-// Xử lý lựa chọn
-function handleChoice(id) {
+// ====================== GỌI GPT API ======================
+async function callGPT(mode, input) {
+  const res = await fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode, input }),
+  });
+  return await res.json();
+}
+
+// ====================== XỬ LÝ LỰA CHỌN ======================
+async function handleChoice(id) {
   const val = document.getElementById("choiceInput").value.trim();
+
   switch (val) {
-    case "1":
+    case "1": {
+      showOutput("<p>⏳ Đang phân tích văn bản...</p>");
+      const data = await callGPT("Phân tích văn bản", id);
       showOutput(`
         <h5>🔍 Phân tích văn bản ${id}</h5>
-        <ul>
-          <li><b>Nội dung chính:</b> (ví dụ – đây là phần phân tích tự động sau này)</li>
-          <li><b>Phạm vi áp dụng:</b> ...</li>
-          <li><b>Hiệu lực:</b> ...</li>
-          <li><b>Căn cứ pháp lý:</b> ...</li>
-        </ul>
-        <button class="btn btn-secondary" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+        <div>${data.reply}</div>
+        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
       `);
       break;
+    }
+    case "2": {
+      const second = prompt("Nhập số hiệu văn bản thứ hai để so sánh:");
+      if (!second) return showMenu(id);
+      showOutput("<p>⏳ Đang so sánh văn bản...</p>");
+      const data = await callGPT("So sánh văn bản", `${id} và ${second}`);
+      showOutput(`
+        <h5>📘 So sánh ${id} và ${second}</h5>
+        <div>${data.reply}</div>
+        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+      `);
+      break;
+    }
+    case "3": {
+      showOutput("<p>⏳ Đang tóm tắt điểm mới...</p>");
+      const data = await callGPT("Tóm tắt điểm mới", id);
+      showOutput(`
+        <h5>📝 Tóm tắt điểm mới của ${id}</h5>
+        <div>${data.reply}</div>
+        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+      `);
+      break;
+    }
+    case "4": {
+      const term = prompt("Nhập điều khoản hoặc thuật ngữ cần giải thích:");
+      if (!term) return showMenu(id);
+      showOutput("<p>⏳ Đang giải thích điều khoản...</p>");
+      const data = await callGPT("Giải thích điều khoản", `${term} trong ${id}`);
+      showOutput(`
+        <h5>📖 Giải thích điều khoản trong ${id}</h5>
+        <div>${data.reply}</div>
+        <button class="btn btn-secondary mt-3" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+      `);
+      break;
+    }
     case "0":
       resetMain();
       break;
     default:
-      alert("Lựa chọn không hợp lệ. Hãy nhập 0–4!");
+      alert("Lựa chọn không hợp lệ! Nhập 0–4");
   }
 }
 
-// Khi bấm “Tìm kiếm theo chủ đề”
-btnTopic.onclick = () => {
-  const topic = prompt("Nhập chủ đề (VD: an toàn lao động):");
+// ====================== TÌM KIẾM THEO CHỦ ĐỀ ======================
+btnTopic.onclick = async () => {
+  const topic = prompt("Nhập chủ đề cần tìm (VD: an toàn lao động):");
   if (!topic) return;
+  showOutput("<p>⏳ Đang tìm kiếm văn bản mới nhất...</p>");
+  const data = await callGPT("Tìm kiếm theo chủ đề", topic);
   showOutput(`
     <h5>📘 Kết quả tìm kiếm cho chủ đề “${topic}”</h5>
-    <p><b>Văn bản mới nhất:</b> (VD) 15/2023/NĐ-CP – Ban hành ngày 15/8/2023</p>
-    <p><b>Cơ quan ban hành:</b> Chính phủ</p>
-    <button class="btn btn-primary" onclick="showMenu('15/2023/NĐ-CP')">Tiếp tục với văn bản này</button>
+    <div>${data.reply}</div>
+    <button class="btn btn-primary mt-2" onclick="showMenu('${topic}')">Tiếp tục với văn bản này</button>
     <button class="btn btn-secondary mt-2" onclick="resetMain()">↩ Quay lại</button>
   `);
 };
 
-// Cho phép gọi từ HTML
 window.handleChoice = handleChoice;
 window.showMenu = showMenu;
 window.resetMain = resetMain;
-
