@@ -63,15 +63,20 @@ async function analyzeLawDoc(id) {
     });
     const data = await res.json();
 
-    if (data.error) {
-      output.innerHTML = `
-        <div class="alert alert-warning">
-          ⚠️ ${data.error}
-        </div>
-        <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>
-      `;
-      return;
-    }
+if (data.error) {
+  output.innerHTML = `
+    <div class="alert alert-warning">
+      ⚠️ Không tìm thấy dữ liệu cho <b>${id}</b>.<br>
+      Hãy đảm bảo bạn nhập đúng định dạng (không dấu).<br><br>
+      Ví dụ hợp lệ:<br>
+      - 15/2023/ND-CP (Nghị định)<br>
+      - 12/2022/TT-BTC (Thông tư)<br>
+      - 23/2021/QD-TTG (Quyết định)
+    </div>
+    <button class="btn btn-secondary mt-2" onclick="showMenu('${id}')">↩ Quay lại menu</button>
+  `;
+  return;
+}
 
     output.innerHTML = `
       <div class="card shadow-sm p-3">
@@ -102,3 +107,4 @@ function resetMain() {
 window.handleChoice = handleChoice;
 window.resetMain = resetMain;
 window.showMenu = showMenu;
+
