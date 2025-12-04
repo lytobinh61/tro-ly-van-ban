@@ -1,22 +1,17 @@
 export default async function handler(req, res) {
-  // ✅ Chỉ cho phép POST
   if (req.method !== "POST") {
-    return res
-      .status(405)
-      .json({ error: "Phương thức không hợp lệ. Chỉ hỗ trợ POST." });
+    return res.status(405).json({ error: "Chỉ hỗ trợ phương thức POST." });
   }
 
   try {
     const { code } = req.body || {};
     if (!code) {
-      return res.status(400).json({ error: "Vui lòng nhập số hiệu văn bản." });
+      return res.status(400).json({ error: "Thiếu số hiệu văn bản." });
     }
 
-    // 🔹 Chuẩn hóa số hiệu văn bản
     const cleanCode = code.trim().toUpperCase().replace(/[–—]/g, "-");
     const encoded = encodeURIComponent(cleanCode);
 
-    // 🔹 3 nguồn dữ liệu chính
     const sources = [
       {
         name: "Luật Việt Nam",
@@ -32,63 +27,59 @@ export default async function handler(req, res) {
       },
     ];
 
-    let found = null;
-    let foundSource = null;
+    let html = null;
+    let sourceName = null;
+    let sourceUrl = null;
 
-    // 🔹 Tìm dữ liệu hợp lệ từ từng nguồn
     for (const s of sources) {
       try {
         const resp = await fetch(s.url);
         if (!resp.ok) continue;
+        const text = await resp.text();
 
-        const html = await resp.text();
-
-        // Chỉ chấp nhận nếu có các cụm đặc trưng của văn bản pháp luật
         if (
-          html.includes("Nghị định") ||
-          html.includes("Thông tư") ||
-          html.includes("Quyết định") ||
-          html.includes("Văn bản hợp nhất")
+          text.includes("Nghị định") ||
+          text.includes("Thông tư") ||
+          text.includes("Quyết định")
         ) {
-          found = html;
-          foundSource = s;
+          html = text;
+          sourceName = s.name;
+          sourceUrl = s.url;
           break;
         }
       } catch (_) {}
     }
 
-    // 🔹 Nếu không tìm thấy ở bất kỳ nguồn nào
-    if (!found) {
+    if (!html) {
       return res.status(404).json({
         error: `Không tìm thấy dữ liệu cho ${code}. 
-Hãy đảm bảo bạn nhập đúng định dạng (ví dụ: 15/2023/NĐ-CP, 12/2022/TT-BTC, 23/2021/QĐ-TTg).`,
+Vui lòng nhập đúng định dạng (ví dụ: 15/2023/NĐ-CP, 12/2022/TT-BTC).`,
       });
     }
 
-    // 🔹 Làm sạch nội dung HTML, giữ phần quan trọng
-    const textOnly = found
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    // Trích thông tin cơ bản bằng regex
+    const find = (regex) => {
+      const m = html.match(regex);
+      return m ? m[1].trim() : "Không rõ";
+    };
 
-    // 🔹 Cắt phần đầu để hiển thị ngắn gọn
-    const snippet = textOnly.slice(0, 1200) + "...";
-
-    // ✅ Trả về kết quả JSON
-    return res.status(200).json({
+    const info = {
       code,
-      source: foundSource.name,
-      summary: "Đã truy xuất thành công dữ liệu văn bản pháp luật.",
-      snippet,
-      originalUrl: foundSource.url,
-    });
+      title: find(/<title>(.*?)<\/title>/i),
+      type:
+        find(/(Nghị định|Thông tư|Quyết định|Công văn)/i) || "Không rõ",
+      agency: find(/(Bộ [^<]+|Chính phủ|Thủ tướng Chính phủ)/i),
+      issued: find(/ngày\s*(\d{1,2}\/\d{1,2}\/\d{4})/i),
+      effect: find(/hiệu lực từ ngày\s*(\d{1,2}\/\d{1,2}\/\d{4})/i),
+      status:
+        find(/(Còn hiệu lực|Hết hiệu lực|Ngưng hiệu lực|Bị thay thế)/i) ||
+        "Không rõ",
+      source: sourceName,
+      link: sourceUrl,
+    };
+
+    return res.status(200).json(info);
   } catch (err) {
-    console.error("❌ Lỗi khi xử lý:", err);
-    return res.status(500).json({
-      error: "Lỗi máy chủ: " + err.message,
-      hint: "Vui lòng thử lại sau vài phút.",
-    });
+    return res.status(500).json({ error: err.message });
   }
 }
