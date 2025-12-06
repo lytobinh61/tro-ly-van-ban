@@ -1,85 +1,58 @@
+// /api/analyze.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // ⚠️ Khai báo trong Vercel → Settings → Environment Variables
+});
+
 export default async function handler(req, res) {
+  // ✅ Chỉ chấp nhận POST
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Chỉ hỗ trợ phương thức POST." });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     const { code } = req.body || {};
     if (!code) {
-      return res.status(400).json({ error: "Thiếu số hiệu văn bản." });
+      return res.status(400).json({ error: "Thiếu số hiệu văn bản pháp luật" });
     }
 
-    const cleanCode = code.trim().toUpperCase().replace(/[–—]/g, "-");
-    const encoded = encodeURIComponent(cleanCode);
+    // 🧠 Prompt gửi đến GPT
+    const prompt = `
+Bạn là chuyên gia pháp lý Việt Nam. 
+Hãy phân tích và tóm tắt ngắn gọn văn bản pháp luật có số hiệu "${code}" theo các mục sau:
+1️⃣ Nội dung chính (tóm tắt khoảng 3–4 câu)  
+2️⃣ Phạm vi áp dụng (đối tượng và lĩnh vực)  
+3️⃣ Hiệu lực thi hành (ngày có hiệu lực, văn bản bị thay thế nếu có)  
+4️⃣ Căn cứ pháp lý và mối liên hệ với các văn bản khác.
 
-    const sources = [
-      {
-        name: "Luật Việt Nam",
-        url: `https://vanban-phapluat.lytobinh61.workers.dev/?url=https://luatvietnam.vn/${encoded}.html`,
-      },
-      {
-        name: "Thư viện Pháp luật",
-        url: `https://vanban-phapluat.lytobinh61.workers.dev/?url=https://thuvienphapluat.vn/${encoded}.html`,
-      },
-      {
-        name: "Data Luật Việt Nam",
-        url: `https://vanban-phapluat.lytobinh61.workers.dev/?url=https://data.luatvietnam.vn/${encoded}.html`,
-      },
-    ];
+Nếu không tìm thấy thông tin, trả về thông báo “Không tìm thấy thông tin hợp lệ cho văn bản ${code}”. 
+Kết quả trả về bằng tiếng Việt, trình bày rõ ràng, dễ đọc.
+`;
 
-    let html = null;
-    let sourceName = null;
-    let sourceUrl = null;
+    // ⚙️ Gửi đến GPT
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Bạn là trợ lý pháp lý chuyên về văn bản Việt Nam." },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.3,
+    });
 
-    for (const s of sources) {
-      try {
-        const resp = await fetch(s.url);
-        if (!resp.ok) continue;
-        const text = await resp.text();
+    const content = response.choices?.[0]?.message?.content || "Không có phản hồi từ GPT.";
 
-        if (
-          text.includes("Nghị định") ||
-          text.includes("Thông tư") ||
-          text.includes("Quyết định")
-        ) {
-          html = text;
-          sourceName = s.name;
-          sourceUrl = s.url;
-          break;
-        }
-      } catch (_) {}
-    }
-
-    if (!html) {
-      return res.status(404).json({
-        error: `Không tìm thấy dữ liệu cho ${code}. 
-Vui lòng nhập đúng định dạng (ví dụ: 15/2023/NĐ-CP, 12/2022/TT-BTC).`,
-      });
-    }
-
-    // Trích thông tin cơ bản bằng regex
-    const find = (regex) => {
-      const m = html.match(regex);
-      return m ? m[1].trim() : "Không rõ";
-    };
-
-    const info = {
+    // ✅ Trả kết quả
+    return res.status(200).json({
       code,
-      title: find(/<title>(.*?)<\/title>/i),
-      type:
-        find(/(Nghị định|Thông tư|Quyết định|Công văn)/i) || "Không rõ",
-      agency: find(/(Bộ [^<]+|Chính phủ|Thủ tướng Chính phủ)/i),
-      issued: find(/ngày\s*(\d{1,2}\/\d{1,2}\/\d{4})/i),
-      effect: find(/hiệu lực từ ngày\s*(\d{1,2}\/\d{1,2}\/\d{4})/i),
-      status:
-        find(/(Còn hiệu lực|Hết hiệu lực|Ngưng hiệu lực|Bị thay thế)/i) ||
-        "Không rõ",
-      source: sourceName,
-      link: sourceUrl,
-    };
-
-    return res.status(200).json(info);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+      analysis: content,
+      source: "GPT-4o-mini",
+    });
+  } catch (error) {
+    console.error("❌ Lỗi GPT:", error);
+    return res.status(500).json({
+      error: "Không thể kết nối GPT hoặc khóa API sai",
+      detail: error.message,
+    });
   }
 }
